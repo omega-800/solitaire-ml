@@ -1,0 +1,4 @@
+(library
+ (name solitaire_ml)
+ (libraries unix)
+ (preprocess (pps ppx_deriving.enum ppx_deriving.show)))

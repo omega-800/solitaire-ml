@@ -1,0 +1,4 @@
+(executable
+ (public_name solitaire-ml)
+ (name main)
+ (libraries solitaire_ml))

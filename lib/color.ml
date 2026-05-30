@@ -1,0 +1,5 @@
+let red = Printf.sprintf "\x1b[31m%s\x1b[0m"
+let green = Printf.sprintf "\x1b[32m%s\x1b[0m"
+let blue = Printf.sprintf "\x1b[34m%s\x1b[0m"
+let yellow = Printf.sprintf "\x1b[33m%s\x1b[0m"
+let reset = "\x1b[0m"
