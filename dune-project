@@ -5,22 +5,22 @@
 (generate_opam_files true)
 
 (source
- (github username/reponame))
+ (github omega-800/solitaire-ml))
 
-(authors "Author Name <author@example.com>")
+(authors "omega-800 <gshevoroshkin@proton.me>")
 
-(maintainers "Maintainer Name <maintainer@example.com>")
+(maintainers "omega-800 <gshevoroshkin@proton.me>")
 
 (license LICENSE)
 
-(documentation https://url/to/documentation)
+(documentation https://github.com/omega-800/solitaire-ml/blob/main/README.md)
 
 (package
  (name solitaire-ml)
- (synopsis "A short synopsis")
- (description "A longer description")
+ (synopsis "tui solitaire")
+ (description "tui solitaire")
  (depends ocaml)
  (tags
-  ("add topics" "to describe" your project)))
+  ("tui" "solitaire" your project)))
 
 ; See the complete stanza docs at https://dune.readthedocs.io/en/stable/reference/dune-project/index.html
