@@ -14,14 +14,18 @@ let cprint c s =
   | Yellow -> yellow s
   | _ -> s
 
+let sepstr = "+-------+"
+let spcstr = "         "
+let crdstr = "|       |"
+
 let show_card_stack_v (cs : marked_stack) : string list =
-  (if List.length cs == 0 then [ "+-------+" ]
+  (if List.length cs == 0 then [ sepstr ]
    else
      List.concat_map
        (fun (c, clr) ->
          let type_str, val_str = show_card c in
          let cp = cprint clr in
-         [ cp "+-------+"; cp "| (" ^ type_str ^ cp ") " ^ val_str ^ cp " |" ])
+         [ cp sepstr; cp "|" ^ " (" ^ type_str ^ ") " ^ val_str ^ cp " |" ])
        cs)
   @
   let cp =
@@ -29,7 +33,9 @@ let show_card_stack_v (cs : marked_stack) : string list =
     | Some (_, clr) -> cprint clr
     | None -> cprint White
   in
-  [ cp "|       |"; cp "+-------+" ]
+  [ cp crdstr; cp sepstr ]
+
+let pcolor p g = if g then Green else if p then Yellow else White
 
 let marked_stacks ({ stacks; top; p; _ } : state) :
     marked_stack array * marked_stack array =
@@ -41,7 +47,8 @@ let marked_stacks ({ stacks; top; p; _ } : state) :
   let curstack = curstacks.(x) in
   let nstack =
     match List.nth_opt curstack y with
-    | Some (curcard, _) -> Util.insert curstack y (curcard, Green)
+    | Some (curcard, _) ->
+        Util.insert curstack y (curcard, pcolor true p.grabbing)
     | None -> curstack
   in
 
@@ -60,18 +67,34 @@ let print_state_v (s : state) : unit =
            Array.fold_left (fun a cs -> a ^ " " ^ List.nth cs i) "" xs)
          xs.(0)
   in
-  let pad_stacks len =
-    Array.map (fun cs ->
-        cs @ List.init (len - List.length cs) (Fun.const "         "))
+  let pad_stack len cs =
+    cs @ List.init (len - List.length cs) (Fun.const spcstr)
   in
+  let pad_stacks len = Array.map (pad_stack len) in
 
   let stacks, top = marked_stacks s in
-  let top = Array.map show_card_stack_v top in
+  let unseen, seen = Util.fsttwo top in
+
+  let top = Array.map show_card_stack_v @@ Array.sub top 2 4 in
   let ltop = maxlen top in
-  let top_placeholder =
-    Array.make 3 @@ List.init ltop @@ Fun.const "         "
-  in
   let top_padded = pad_stacks ltop top in
+
+  let single_card c =
+    match c with
+    | Some (c, clr) ->
+        let cp = cprint clr in
+        let t, v = show_card c in
+        [ cp sepstr; cp "|" ^ " (" ^ t ^ ") " ^ v ^ cp " |"; cp sepstr ]
+    | None -> [ sepstr; crdstr; sepstr ]
+  in
+  let top_placeholder =
+    Array.map (pad_stack ltop)
+      [|
+        List.nth_opt unseen 0 |> single_card;
+        List.nth_opt seen 0 |> single_card;
+        [];
+      |]
+  in
   let top_combined = Array.append top_placeholder top_padded in
 
   let stacks = Array.map show_card_stack_v stacks in

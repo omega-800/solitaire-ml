@@ -4,13 +4,13 @@ open Cards
 type player = { pos : int * int; top: bool; grabbing : bool } [@@deriving show]
 
 type state = {
-  seen : card list;
-  unseen : card list;
-  stacks : card list array;
   top : card list array;
+  stacks : card list array;
   p : player;
 }
 [@@deriving show]
 
 val init_state : state
 val move : state -> char -> state
+val cycle_grab : state -> state
+val cycle_next_cards : state -> state
