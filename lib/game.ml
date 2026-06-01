@@ -108,6 +108,9 @@ let rec move (c : char) (s : state) : state =
 
 let is_valid_ungrab (s : state) : bool =
   let x, _ = s.p.pos in
+  (not @@ List.is_empty s.p.grabbing)
+  && (x > 1 || not s.p.top)
+  &&
   let gt, gv, _ = List.nth s.p.grabbing 0 in
   let is_valid_top (t, v, s') =
     List.length s.p.grabbing == 1
@@ -119,9 +122,6 @@ let is_valid_ungrab (s : state) : bool =
     Cards.is_red gt != Cards.is_red t
     && card_val_to_enum v - card_val_to_enum gv == 1
   in
-  (not @@ List.is_empty s.p.grabbing)
-  && (x > 1 || not s.p.top)
-  &&
   match cur_card s with
   | None -> (not s.p.top) || (card_type_to_enum gt == x - 2 && gv == Ace)
   | Some c ->
