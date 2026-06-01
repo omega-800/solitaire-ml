@@ -9,11 +9,13 @@ let rec loopedy_loop (s : Game.state) : unit =
   print_endline "n for next card";
   print_endline "o to open hidden card";
   print_endline "q to quit";
+  (*
   (s.p.pos
   |> Util.uncurry @@ Printf.printf "position: (%d, %d) t[%b] s@[%d] g@[%d]\n")
     s.p.top
     (List.length s.top.(1))
   @@ List.length s.p.grabbing;
+  *)
 
   Print.print_state_v s;
   let c = Util.get_char () in
