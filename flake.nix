@@ -19,7 +19,8 @@
             }
           )
         );
-      pname = "";
+      pname = "solitaire-ml";
+      version = "0.0.1";
     in
     {
       devShells = eachSystem (pkgs: {
@@ -29,10 +30,10 @@
             ocamlformat
             opam
             dune
-            ocamlPackages.ppx_enumerate
+            ocamlPackages.ppx_deriving
             rlwrap
           ];
-          env.OCAMLRUNPARAM="b";
+          env.OCAMLRUNPARAM = "b";
         };
       });
 
@@ -43,17 +44,21 @@
           root = ./.;
         in
         {
-          default = pkgs.buildDunePackage {
-            name = pname;
-            src = root;
-            # src = fs.toSource {
-            #   inherit root;
-            #   fileset = fs.intersection (fs.gitTracked root) (
-            #     fs.unions [
-            #       (fs.fileFilter (f: f.hasExt "hs") ./src)
-            #     ]
-            #   );
-            # };
+          default = pkgs.ocamlPackages.buildDunePackage {
+            inherit pname version;
+            buildInputs = with pkgs.ocamlPackages; [
+              dune-configurator
+              ppx_deriving
+            ];
+            src = fs.toSource {
+              inherit root;
+              fileset = fs.intersection (fs.gitTracked root) (
+                # TODO:
+                fs.unions [
+                  (fs.fileFilter (_: true) ./.)
+                ]
+              );
+            };
           };
         }
       );

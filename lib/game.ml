@@ -53,6 +53,11 @@ let is_cur_card_last (s : state) : bool =
   let len = List.length @@ cur_stack s in
   Pair.snd s.p.pos + 1 == len || len == 0
 
+let inside_bounds ({ p; stacks; top; _ } : state) : bool =
+  let curstacks = if p.top then top else stacks in
+  let x, y = p.pos in
+  Array.length curstacks > x && (Option.is_some @@ List.nth_opt curstacks.(x) y)
+
 let rec move (c : char) (s : state) : state =
   let { p; stacks; top; _ } = s in
   let x, y = p.pos in
@@ -76,35 +81,48 @@ let rec move (c : char) (s : state) : state =
 
   let curstacks = if p.top then top else stacks in
   let cur_max_x = Array.length curstacks in
+  (* let nx' = *)
+  (*   if nx > cur_max_x then 0 else if nx < 0 then max 0 cur_max_x - 1 else 0 *)
+  (* in *)
   let nx' = ubc nx cur_max_x in
   let cur_max_y = if p.top && nx' < 2 then 0 else List.length curstacks.(nx') in
   let ny' = ubc ~is_y:true ny cur_max_y in
 
-  let top, px, py =
-    if h then (p.top, nx', ny')
+  let ptop = ((not h) && oob ny cur_max_y) != p.top in
+
+  (* let px, py = ((if h then nx' else nx), if ptop != p.top then 0 else ny) in *)
+
+  let px, py =
+    if h then (nx', ny')
     else if oob ny cur_max_y then
       let nstacks = if p.top then stacks else top in
       let n_max_x = Array.length nstacks in
-      let top = not p.top in
-      let nx' = if nx > 1 then if top then nx - 1 else nx + 1 else nx in
+      let nx' = if nx' > 1 then if ptop then nx' - 1 else nx' + 1 else nx' in
       (* not necessary i guess *)
       let nx' = ubc nx' n_max_x in
       let n_max_y = List.length nstacks.(nx') in
       let ny' = ubc y n_max_y in
-      (top, nx', if nx' < 2 && top then 0 else ny')
-    else (p.top, x, if x < 2 && p.top then cur_max_y else ny')
+      (nx', if nx' < 2 && ptop then 0 else ny')
+    else (x, if x < 2 && p.top then cur_max_y else ny')
   in
-
-  let p = { p with pos = (px, py); top } in
+  (* let px = nx' in *)
+  (* let py = ny' in *)
+  let p = { p with pos = (px, py); top = ptop } in
   let s = { s with p } in
 
   let valid_grab =
     List.is_empty p.grabbing || (((not p.top) || px != 1) && is_cur_card_last s)
   in
   let valid_pos =
-    is_cur_card_last s || (Util.none_or (fun (_, _, s') -> s') @@ cur_card s)
+    inside_bounds s
+    &&
+    (* i miss lazy evaluation *)
+    let forbid_00 = (not p.top) || px != 0 in
+    let forbid_unseen = Util.none_or Cards.is_seen @@ cur_card s in
+    let allow_empty = is_cur_card_last s in
+    forbid_00 && (forbid_unseen || allow_empty)
   in
-  if valid_grab && valid_pos then s else move 'j' s
+  if valid_grab && valid_pos then s else move c s
 
 let is_valid_ungrab (s : state) : bool =
   let x, _ = s.p.pos in
@@ -115,7 +133,7 @@ let is_valid_ungrab (s : state) : bool =
   let is_valid_top (t, v, s') =
     List.length s.p.grabbing == 1
     && gt == t
-    && card_val_to_enum v - card_val_to_enum gv == 1
+    && card_val_to_enum gv - card_val_to_enum v == 1
     && card_type_to_enum t == x - 2
   in
   let is_valid_stack (t, v, s') =

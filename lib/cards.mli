@@ -2,6 +2,7 @@
 type card_type =  Spade | Heart | Club | Diamond [@@deriving enum, show]
 
 type card_val =
+  | Ace
   | N2
   | N3
   | N4
@@ -14,7 +15,6 @@ type card_val =
   | Jack
   | Queen
   | King
-  | Ace
 [@@deriving enum, show]
 
 type card = card_type * card_val * bool [@@deriving show]

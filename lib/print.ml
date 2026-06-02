@@ -93,7 +93,7 @@ let print_state_v (s : state) : unit =
         if List.is_empty cs then
           [
             cp sepstr;
-            cp "|  >>="
+            cp "|  |> "
             ^ show_card_type (Option.get @@ card_type_of_enum i)
             ^ cp "  |";
             cp sepstr;
@@ -101,7 +101,13 @@ let print_state_v (s : state) : unit =
         else show_card_stack_v cs clr)
     @@ Array.sub top 2 4
   in
-  let ltop = maxlen top in
+  let ltop =
+    maxlen top
+    (* +
+    if Pair.fst s.p.pos == 1 && s.p.top && (not @@ List.is_empty s.p.grabbing)
+    then 3
+    else 0 *)
+  in
   let top_padded = pad_stacks ltop top in
 
   let single_card c emptyclr =
@@ -113,10 +119,18 @@ let print_state_v (s : state) : unit =
     | None -> List.map (cprint emptyclr) [ sepstr; crdstr; sepstr ]
   in
   let top_placeholder =
+    (* let cg =
+      if not @@ List.is_empty s.p.grabbing then
+        Green
+        |> single_card
+           @@ Option.map (fun c -> (c, Green))
+           @@ List.nth_opt s.p.grabbing 0
+      else []
+    in *)
     Array.map (pad_stack ltop)
       [|
         hacky_clr true 0 |> single_card @@ List.nth_opt unseen 0;
-        hacky_clr true 1 |> single_card @@ List.nth_opt seen 0;
+        hacky_clr true 1 |> single_card @@ List.nth_opt seen 0 (* @ cg *);
         [];
       |]
   in
