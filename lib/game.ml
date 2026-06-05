@@ -5,7 +5,12 @@ open Stdlib
 type player = { pos : int * int; top : bool; grabbing : card list }
 [@@deriving show]
 
-type state = { top : card list array; stacks : card list array; p : player }
+type state = {
+  top : card list array;
+  stacks : card list array;
+  p : player;
+  can_undo : bool;
+}
 [@@deriving show]
 
 let arrange_stacks (cs : card list) : card list array * card list =
@@ -25,6 +30,7 @@ let init_state : state =
     top = [| unseen; []; []; []; []; [] |];
     stacks;
     p = { pos = (0, 6); top = false; grabbing = [] };
+    can_undo = false;
   }
 
 let set_cur_stack (s : state) (n : card list) : state =
@@ -63,10 +69,9 @@ let inside_bounds ({ p; stacks; top; _ } : state) : bool =
 let is_pos_valid (s : state) : bool =
   let x, y = s.p.pos in
   let is_grabbing = not @@ List.is_empty s.p.grabbing in
-  ((not s.p.top) || x > if is_grabbing then 1 else 0)
-  &&
-  if is_grabbing then is_cur_card_last s
-  else is_cur_card_last s || Util.none_or Cards.is_seen @@ cur_card s
+  ((not s.p.top) || ((x > if is_grabbing then 1 else 0) && (x != 1 || y == 0)))
+  && (is_cur_card_last s
+     || ((not is_grabbing) && (Util.none_or Cards.is_seen @@ cur_card s)))
 
 let set_pos s x' y' = { s with p = { s.p with pos = (x', y') } }
 
@@ -74,8 +79,10 @@ let rec adjust_y_pos (s : state) : state =
   let x, y = s.p.pos in
   let set_y = set_pos s x in
   let curstacks = if s.p.top then s.top else s.stacks in
-  let max_y = List.length curstacks.(x) - 1 in
-  if not @@ inside_bounds s then max 0 y - 1 |> set_y |> adjust_y_pos
+  let on_seen = s.p.top && x == 1 in
+  let max_y = if on_seen then 0 else max 0 @@ (List.length curstacks.(x) - 1) in
+  if not @@ inside_bounds s then
+    (if on_seen then 0 else max 0 y - 1) |> set_y |> adjust_y_pos
   else if not @@ is_pos_valid s then min max_y y + 1 |> set_y |> adjust_y_pos
   else s
 
@@ -133,10 +140,13 @@ let is_valid_ungrab (s : state) : bool =
       (not @@ Cards.is_seen c)
       || (if s.p.top then is_valid_top else is_valid_stack) c
 
-(* TODO: let player ungrab card taken from seen *)
 let ungrab_cards (s : state) : state =
   move 'k'
-    { (add_to_cur_stack s s.p.grabbing) with p = { s.p with grabbing = [] } }
+    {
+      (add_to_cur_stack s s.p.grabbing) with
+      p = { s.p with grabbing = [] };
+      can_undo = false;
+    }
 
 let is_valid_grab (s : state) : bool =
   List.is_empty s.p.grabbing
@@ -151,7 +161,11 @@ let grab_cards (s : state) : state =
   let rest, grabbing =
     if takes_seen then (grabbing, rest) else (rest, grabbing)
   in
-  { (set_cur_stack s rest) with p = { s.p with grabbing } }
+  {
+    (set_cur_stack s rest) with
+    p = { s.p with grabbing };
+    can_undo = takes_seen;
+  }
 
 let cycle_grab (s : state) : state =
   if is_valid_grab s then grab_cards s
@@ -173,3 +187,10 @@ let open_card (s : state) : state =
   | None -> s
   | Some (t, v, s') ->
       if s' then s else set_cur_stack s @@ open_first_card @@ cur_stack s
+
+let undo (s : state) : state =
+  if List.is_empty s.p.grabbing || not s.can_undo then s
+  else
+    let { p; top; _ } = s in
+    top.(1) <- top.(1) @ s.p.grabbing;
+    { s with p = { s.p with grabbing = [] }; can_undo = false }

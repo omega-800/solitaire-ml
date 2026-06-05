@@ -36,7 +36,7 @@ let show_card_stack_v (cs : marked_stack) (emptyclr : color) : string list =
   in
   [ cp crdstr; cp sepstr ]
 
-let pcolor p g = (*if g then Green else*) if p then Yellow else White
+let pcolor p = if p then Yellow else White
 
 let marked_stacks ({ stacks; top; p; _ } : state) :
     marked_stack array * marked_stack array =
@@ -50,9 +50,7 @@ let marked_stacks ({ stacks; top; p; _ } : state) :
 
   let nstack =
     (match List.nth_opt curstack y with
-      | Some (curcard, _) ->
-          Util.insert curstack y
-            (curcard, pcolor true @@ not @@ List.is_empty p.grabbing)
+      | Some (curcard, _) -> Util.insert curstack y (curcard, pcolor true)
       | None -> curstack)
     @ grabbing
   in
@@ -81,9 +79,7 @@ let print_state_v (s : state) : unit =
   let unseen, seen = Util.fsttwo top in
 
   let hacky_clr t x =
-    if s.p.top == t && x == Pair.fst s.p.pos then
-      pcolor true @@ not @@ List.is_empty s.p.grabbing
-    else White
+    if s.p.top == t && x == Pair.fst s.p.pos then pcolor true else White
   in
 
   let top =
@@ -101,37 +97,34 @@ let print_state_v (s : state) : unit =
         else show_card_stack_v cs clr)
     @@ Array.sub top 2 4
   in
-  let ltop =
-    maxlen top
-    (* +
-    if Pair.fst s.p.pos == 1 && s.p.top && (not @@ List.is_empty s.p.grabbing)
-    then 3
-    else 0 *)
-  in
-  let top_padded = pad_stacks ltop top in
 
-  let single_card c emptyclr =
+  let single_card ?(full = false) c emptyclr =
     match c with
     | Some (c, clr) ->
         let cp = cprint clr in
         let t, v = show_card c in
-        [ cp sepstr; cp "|" ^ " (" ^ t ^ ") " ^ v ^ cp " |"; cp sepstr ]
+        [ cp sepstr; cp "|" ^ " (" ^ t ^ ") " ^ v ^ cp " |" ]
+        @ (if full then [ cp crdstr ] else [])
+        @ [ cp sepstr ]
     | None -> List.map (cprint emptyclr) [ sepstr; crdstr; sepstr ]
   in
+  let show_seen =
+    if s.p.top && Pair.fst s.p.pos == 1 then
+      let f = List.nth_opt s.top.(1) 0 in
+      let g = List.nth_opt s.p.grabbing 0 in
+      let mf = List.map (fun c -> (c, Yellow)) @@ Option.to_list f in
+      let mg = List.map (fun c -> (c, Green)) @@ Option.to_list g in
+      Yellow |> show_card_stack_v @@ mf @ mg
+    else single_card ~full:true (List.nth_opt seen 0) White
+  in
+
+  let ltop = List.length show_seen |> max @@ maxlen top in
+  let top_padded = pad_stacks ltop top in
+
   let top_placeholder =
-    (* let cg =
-      if not @@ List.is_empty s.p.grabbing then
-        Green
-        |> single_card
-           @@ Option.map (fun c -> (c, Green))
-           @@ List.nth_opt s.p.grabbing 0
-      else []
-    in *)
     Array.map (pad_stack ltop)
       [|
-        hacky_clr true 0 |> single_card @@ List.nth_opt unseen 0;
-        hacky_clr true 1 |> single_card @@ List.nth_opt seen 0 (* @ cg *);
-        [];
+        hacky_clr true 0 |> single_card @@ List.nth_opt unseen 0; show_seen; [];
       |]
   in
   let top_combined = Array.append top_placeholder top_padded in
@@ -143,10 +136,6 @@ let print_state_v (s : state) : unit =
   let stacks_padded = pad_stacks lstacks stacks in
 
   print_endline @@ concat_rows top_combined ^ "\n\n" ^ concat_rows stacks_padded
-(* print_endline @@ concat_rows top_combined ^ concat_rows stacks *)
-(* print_endline @@ String.concat "\n" @@ Array.to_list @@ Array.map (Fun.compose Int.to_string List.length) top_combined *)
-(* print_endline @@ String.concat "\n" @@ Array.to_list @@ Array.map (String.concat "@") stacks_padded *)
-(* print_endline @@ show_state s *)
 
 (*
 let rec show_card_stack_h (cs : card list) : string list =
